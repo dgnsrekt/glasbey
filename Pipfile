@@ -13,8 +13,8 @@ wemake-python-styleguide = "*"
 logme = "*"
 progressbar2 = "*"
 python-decouple = "*"
-requests-html = "*"
 webcolors = "*"
+requests = "*"
 
 [dev-packages]
 black = "==19.10b0"

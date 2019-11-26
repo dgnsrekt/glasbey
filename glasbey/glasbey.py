@@ -34,6 +34,8 @@ class ColorTable:
             self.colors = self.generate_color_table()
             self.save_color_table(self.colors)
 
+        # add some self.color validation maybe len of table/ size of file
+
     def load_color_table(self):
         return np.load(CAM02_UCS_LUT_PATH)["lut"]
 
@@ -68,6 +70,10 @@ class ColorTable:
 
         return colors
 
+    @property
+    def shape(self):
+        return self.colors.shape
+
     def __getitem__(self, lut_index):
         return self.colors[lut_index]
 
@@ -78,8 +84,7 @@ def sRGB255_to_lut_index(sRGB_value):
 
 
 class Palette:
-    def __init__(self, color_table):
-        self.color_table = color_table
+    def __init__(self):
         self.palette = []
 
     @staticmethod
@@ -87,72 +92,106 @@ class Palette:
         distance = np.linalg.norm((colors - color), axis=1)
         return np.minimum(distances, distance.reshape(distances.shape))
 
-    def generate_palette(self, size):  # colortable needed here
+    def generate_palette(self, palette_size):  # colortable needed here
 
+        color_table = ColorTable()
         converter = cspace_converter("CAM02-UCS", "sRGB1")
 
         if len(self.palette) < 1:
-            self.palette = [self.color_table[-1, :]]
+            self.palette = [color_table[-1, :]]
 
-        if size <= len(self.palette):
-            return converter(self.palette[0:size])
+        if palette_size <= len(self.palette):
+            return converter(self.palette[0:palette_size])
 
-        number_of_colors = self.color_table.colors.shape[0]
+        number_of_colors = color_table.shape[0]
         distances = np.ones(shape=(number_of_colors, 1)) * 1000
 
         for i in range(len(self.palette) - 1):
             print("d", end="", flush=True)
-            distances = self.update_distances(self.color_table.colors, self.palette[i], distances)
+            distances = self.update_distances(color_table.colors, self.palette[i], distances)
 
-        while len(self.palette) < size:
+        while len(self.palette) < palette_size:
             print("p", end="", flush=True)
-            distances = self.update_distances(self.color_table.colors, self.palette[-1], distances)
-            self.palette.append(self.color_table[np.argmax(distances), :])
+            distances = self.update_distances(color_table.colors, self.palette[-1], distances)
+            self.palette.append(color_table[np.argmax(distances), :])
 
-        return converter(self.palette[0:size])
+        return converter(self.palette[0:palette_size])
 
-    def load_palette_file(self, path):
+    def load_base_palette(self, base_palette):
+        color_table = ColorTable()
+        self.palette = [color_table[sRGB255_to_lut_index(rgb), :] for rgb in base_palette]
+
+    def load_hex_palette_file(self, path):
         path = Path(path)
         assert path.exists()
 
         base_palette = []
-        with open(path, "r") as csv_file:
-            palette_reader = csv.reader(csv_file, delimiter=",")
-            for line in palette_reader:
-                base_palette.append(tuple(map(int, line)))
+        with open(path, "r") as palette_read_file:
+            for color in palette_read_file.readline():
+                rgb_color = hex_to_rgb(color)
+                base_palette.append(rgb_color)
 
         if len(base_palette) > 0:
             self.load_base_palette(base_palette)
 
-    def load_base_palette(self, base_palette):
-        self.palette = [self.color_table[sRGB255_to_lut_index(rgb), :] for rgb in base_palette]
+    def save_hex_palette_file(self, path, overwrite=False):
+        hex_palette = self.get_hex_palette()
 
-    def save_palette(self, path, overwrite=False):
-        if overwrite:
-            assert not path.exists()
+        if overwrite is False:
+            assert path.exists() is False #TODO: correct execption
+
+        with open(path, "w") as palette_write_file:
+            for color in hex_palette:
+                palette_write_file.write(color)
+
+    def load_rgb_palette_file(self, path):
+        path = Path(path)
+        assert path.exists()
+
+        base_palette = []
+        with open(path, "r") as palette_read_file:
+            for color in palette_read_file.readline():
+                rgb_color = hex_to_rgb(color)
+                base_palette.append(rgb_color)
+
+        if len(base_palette) > 0:
+            self.load_base_palette(base_palette)
+
+    def get_hex_palette(self):
+        hex_palette = []
+
+        assert len(self) > 1 #TODO: Correct execption.
+        for color in self.palette:
+            hex_color = rgb_to_hex(color)
+            hex_palette.append(hex_color)
+        return hex_palette
+
+    def __len__(self):
+        return len(self.palette)
 
 
-lut = ColorTable()
-base_palette = [(0, 22, 244), (22, 33, 223), (200, 255, 66)]
-for p in base_palette:
-    h = rgb_to_hex(p)
-    print("hex:", h)
-    r = hex_to_rgb(h)
-    print("rgb:", r)
+def main():
+    lut = ColorTable()
+    base_palette = [(0, 22, 244), (22, 33, 223), (200, 255, 66)]
+    for p in base_palette:
+        h = rgb_to_hex(p)
+        print("hex:", h)
+        r = hex_to_rgb(h)
+        print("rgb:", r)
 
-exit()
-p = Palette(lut)
-# p.generate_palette(5)
-# print(p.palette)
-# p.load_base_palette(base_palette)
-# print(p.palette)
-p.load_palette_file("palette.txt")
-print(p.palette)
-x = p.generate_palette(256)
-print()
-print(x)
+    exit()
+    p = Palette(lut)
+    # p.generate_palette(5)
+    # print(p.palette)
+    # p.load_base_palette(base_palette)
+    # print(p.palette)
+    p.load_palette_file("palette.txt")
+    print(p.palette)
+    x = p.generate_palette(256)
+    print()
+    print(x)
 
-# x = [(rgb[0] * 256 + rgb[1]) * 256 + rgb[2] for rgb in base_palette]
-# x = [lut.convert_sRGB255_to_lut_index(rgb) for rgb in base_palette]
-# print(x)
-# print(lut[base_palette[0], :])
+    # x = [(rgb[0] * 256 + rgb[1]) * 256 + rgb[2] for rgb in base_palette]
+    # x = [lut.convert_sRGB255_to_lut_index(rgb) for rgb in base_palette]
+    # print(x)
+    # print(lut[base_palette[0], :])
