@@ -49,11 +49,11 @@ class ColorTable:
         :return: LUT as Numpy array
         """
 
-        i = 0
 
         widgets = ["Generating color table: ", Percentage(), " ", Bar(), " ", ETA()]
         bar = ProgressBar(widgets=widgets, maxval=(MAX_RANGE ** 2)).start()
 
+        i = 0
         colors = np.empty(shape=(MAX_RGB255_COLORS, 3), dtype=float)
         converter = cspace_converter("sRGB255", "CAM02-UCS")
 
@@ -67,6 +67,7 @@ class ColorTable:
                 )
                 i += 1
                 bar.update(i)
+        bar.finish()
 
         return colors
 
@@ -89,12 +90,14 @@ class Palette:
 
     @staticmethod
     def update_distances(colors, color, distances):
-        distance = np.linalg.norm((colors - color), axis=1)
-        return np.minimum(distances, distance.reshape(distances.shape))
+        d = np.linalg.norm((colors - color), axis=1)
+        return np.minimum(distances, d.reshape(distances.shape))
 
     def generate_palette(self, palette_size):  # colortable needed here
 
         color_table = ColorTable()
+        print(color_table)
+
         converter = cspace_converter("CAM02-UCS", "sRGB1")
 
         if len(self.palette) < 1:
@@ -107,13 +110,17 @@ class Palette:
         distances = np.ones(shape=(number_of_colors, 1)) * 1000
 
         for i in range(len(self.palette) - 1):
-            print("d", end="", flush=True)
             distances = self.update_distances(color_table.colors, self.palette[i], distances)
 
         while len(self.palette) < palette_size:
-            print("p", end="", flush=True)
             distances = self.update_distances(color_table.colors, self.palette[-1], distances)
             self.palette.append(color_table[np.argmax(distances), :])
+
+        #validation
+        assert isinstance(self.palette, list)
+        for color in self.palette:
+            assert len(color) == 3
+            assert isinstance(color, np.ndarray)
 
         return converter(self.palette[0:palette_size])
 
@@ -121,54 +128,42 @@ class Palette:
         color_table = ColorTable()
         self.palette = [color_table[sRGB255_to_lut_index(rgb), :] for rgb in base_palette]
 
-    def load_hex_palette_file(self, path):
-        path = Path(path)
-        assert path.exists()
-
-        base_palette = []
-        with open(path, "r") as palette_read_file:
-            for color in palette_read_file.readline():
-                rgb_color = hex_to_rgb(color)
-                base_palette.append(rgb_color)
-
-        if len(base_palette) > 0:
-            self.load_base_palette(base_palette)
-
-    def save_hex_palette_file(self, path, overwrite=False):
-        hex_palette = self.get_hex_palette()
-
-        if overwrite is False:
-            assert path.exists() is False #TODO: correct execption
-
-        with open(path, "w") as palette_write_file:
-            for color in hex_palette:
-                palette_write_file.write(color)
-
-    def load_rgb_palette_file(self, path):
-        path = Path(path)
-        assert path.exists()
-
-        base_palette = []
-        with open(path, "r") as palette_read_file:
-            for color in palette_read_file.readline():
-                rgb_color = hex_to_rgb(color)
-                base_palette.append(rgb_color)
-
-        if len(base_palette) > 0:
-            self.load_base_palette(base_palette)
-
-    def get_hex_palette(self):
-        hex_palette = []
-
-        assert len(self) > 1 #TODO: Correct execption.
+    def save(self, file_path):
         for color in self.palette:
-            hex_color = rgb_to_hex(color)
-            hex_palette.append(hex_color)
-        return hex_palette
+            red, green, blue = tuple(int(round(k * 255)) for k in color)
+            print(red, green, blue)
+
+
+    def load(self, file_path):
+        path = Path(file_path)
+        assert path.exists()
+
+        base_palette = []
+        with open(path, "r") as csv_file:
+            palette_reader = csv.reader(csv_file, delimiter=",")
+            for line in palette_reader:
+                base_palette.append(tuple(map(int, line)))
+
+        if len(base_palette) > 0:
+            self.load_base_palette(base_palette)
 
     def __len__(self):
         return len(self.palette)
 
+from color_mind import ColorMind
+base = ColorMind.random_palette()
+p = Palette()
+p.load_base_palette(base)
+pal = p.generate_palette(64)
+print()
+print(pal)
+print()
+
+npal = [tuple(int(round(k * 255)) for k in color) for color in pal]
+print()
+print(npal)
+print()
+#p.save("demo")
 
 def main():
     lut = ColorTable()

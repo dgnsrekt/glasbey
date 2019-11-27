@@ -7,9 +7,6 @@ name = "pypi"
 colorspacious = "*"
 Pillow = "*"
 nox = "*"
-pytest = "*"
-pytest-watch = "*"
-wemake-python-styleguide = "*"
 logme = "*"
 progressbar2 = "*"
 python-decouple = "*"
@@ -18,6 +15,10 @@ requests = "*"
 
 [dev-packages]
 black = "==19.10b0"
+pytest = "*"
+pytest-watch = "*"
+wemake-python-styleguide = "*"
+nox = "*"
 
 [requires]
 python_version = "3.7"
