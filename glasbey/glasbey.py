@@ -128,8 +128,8 @@ class Palette:
         color_table = ColorTable()
         self.palette = [color_table[sRGB255_to_lut_index(rgb), :] for rgb in base_palette]
 
-    def save(self, file_path):
-        for color in self.palette:
+    def save(self, file_path, palette):
+        for color in palette:
             red, green, blue = tuple(int(round(k * 255)) for k in color)
             print(red, green, blue)
 
@@ -154,9 +154,11 @@ from color_mind import ColorMind
 base = ColorMind.random_palette()
 p = Palette()
 p.load_base_palette(base)
-pal = p.generate_palette(64)
+pal = p.generate_palette(128)
 print()
 print(pal)
+print()
+p.save("demo2", pal)
 print()
 
 npal = [tuple(int(round(k * 255)) for k in color) for color in pal]
