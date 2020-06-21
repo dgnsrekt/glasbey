@@ -4,13 +4,23 @@ from math import ceil, sqrt
 from random import choices
 from color_mind import ColorMind
 import requests
+from glasbey import Palette
 
-SIZE = 8  # Suggest range 2 -> MAX 12
+SIZE = 10  # Suggest range 2 -> MAX 12
 
-COLORS = ColorMind.random_palette()
-COLORS = choices(COLORS, k=2 ** SIZE)
+# COLORS = ColorMind.random_palette()
+# COLORS = choices(COLORS, k=2 ** SIZE)
 
-BLOCK_SIZE = 25
+base = ColorMind.random_palette()
+p = Palette()
+p.load_base_palette(base)
+COLORS = p.generate_palette(2 ** SIZE)
+COLORS = p.convert_palette_to_rgb(COLORS)
+print("LEN OF COLORS:", len(COLORS))
+
+# COLORS = choices(COLORS, k=(2 ** SIZE) * 256)
+
+BLOCK_SIZE = 100
 
 HEIGHT, WIDTH = BLOCK_SIZE * ceil(sqrt(len(COLORS))), BLOCK_SIZE * ceil(sqrt(len(COLORS)))
 
@@ -43,3 +53,4 @@ for y in range(matrix):
 
 
 im.show()
+im.save(f"PALETTE_{len(COLORS)}", "JPEG")

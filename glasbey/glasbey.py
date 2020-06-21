@@ -49,7 +49,6 @@ class ColorTable:
         :return: LUT as Numpy array
         """
 
-
         widgets = ["Generating color table: ", Percentage(), " ", Bar(), " ", ETA()]
         bar = ProgressBar(widgets=widgets, maxval=(MAX_RANGE ** 2)).start()
 
@@ -116,7 +115,7 @@ class Palette:
             distances = self.update_distances(color_table.colors, self.palette[-1], distances)
             self.palette.append(color_table[np.argmax(distances), :])
 
-        #validation
+        # validation
         assert isinstance(self.palette, list)
         for color in self.palette:
             assert len(color) == 3
@@ -133,7 +132,6 @@ class Palette:
             red, green, blue = tuple(int(round(k * 255)) for k in color)
             print(red, green, blue)
 
-
     def load(self, file_path):
         path = Path(file_path)
         assert path.exists()
@@ -147,34 +145,35 @@ class Palette:
         if len(base_palette) > 0:
             self.load_base_palette(base_palette)
 
+    def convert_palette_to_rgb(self, palette):
+        return [tuple(int(round(k * 255)) for k in color) for color in palette]
+
     def __len__(self):
         return len(self.palette)
 
-from color_mind import ColorMind
-base = ColorMind.random_palette()
-p = Palette()
-p.load_base_palette(base)
-pal = p.generate_palette(128)
-print()
-print(pal)
-print()
-p.save("demo2", pal)
-print()
 
-npal = [tuple(int(round(k * 255)) for k in color) for color in pal]
-print()
-print(npal)
-print()
-#p.save("demo")
+
+
+def other():
+    from color_mind import ColorMind
+
+    base = ColorMind.random_palette()
+    p = Palette()
+    p.load_base_palette(base)
+    pal = p.generate_palette(32)
+    # print()
+    # print(pal)
+    # print()
+    # p.save("demo2", pal)
+    # print()
+    npal = p.convert_palette_to_rgb(pal)
+    # print()
+    # print(npal)
+    # print()
+    # p.save("demo")
+
 
 def main():
-    lut = ColorTable()
-    base_palette = [(0, 22, 244), (22, 33, 223), (200, 255, 66)]
-    for p in base_palette:
-        h = rgb_to_hex(p)
-        print("hex:", h)
-        r = hex_to_rgb(h)
-        print("rgb:", r)
 
     exit()
     p = Palette(lut)
@@ -192,3 +191,5 @@ def main():
     # x = [lut.convert_sRGB255_to_lut_index(rgb) for rgb in base_palette]
     # print(x)
     # print(lut[base_palette[0], :])
+
+breakpoint()
